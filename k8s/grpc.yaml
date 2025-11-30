@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlops-grpc
+  namespace: mlops-hw
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: mlops-grpc }
+  template:
+    metadata:
+      labels: { app: mlops-grpc }
+    spec:
+      containers:
+        - name: grpc
+          image: mlops-hw/grpc:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: mlops-config }
+            - secretRef: { name: mlops-secrets }
+          ports:
+            - containerPort: 50051
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlops-grpc
+  namespace: mlops-hw
+spec:
+  selector: { app: mlops-grpc }
+  type: NodePort
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+      nodePort: 30051

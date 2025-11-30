@@ -1,0 +1,61 @@
+version: "3.8"
+services:
+  mongo:
+    image: mongo:4.4
+    restart: unless-stopped
+    volumes:
+      - clearml-mongo:/data/db
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.10
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - clearml-es:/usr/share/elasticsearch/data
+  redis:
+    image: redis:6.2
+    restart: unless-stopped
+  apiserver:
+    image: allegroai/clearml:1.13.1
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - elasticsearch
+      - redis
+    ports:
+      - "8008:8008"
+    environment:
+      - CLEARML_APISERVER__host=0.0.0.0
+  webserver:
+    image: allegroai/clearml:1.13.1
+    restart: unless-stopped
+    depends_on:
+      - apiserver
+    ports:
+      - "8080:8080"
+    environment:
+      - CLEARML_WEBSERVER__host=0.0.0.0
+  fileserver:
+    image: allegroai/clearml:1.13.1
+    restart: unless-stopped
+    depends_on:
+      - apiserver
+    ports:
+      - "8081:8081"
+    environment:
+      - CLEARML_FILES_SERVER__host=0.0.0.0
+    volumes:
+      - clearml-files:/opt/clearml/data
+# Optional: configure S3 storage for SDK (client-side clearml.conf),
+# or map ClearML server fileserver to S3 (advanced). For the course
+# requirements we will use SDK to upload models to MinIO S3 directly.
+
+volumes:
+  clearml-mongo:
+  clearml-es:
+  clearml-files:
