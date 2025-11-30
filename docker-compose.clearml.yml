@@ -3,10 +3,15 @@ services:
   mongo:
     image: mongo:4.4
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     volumes:
       - clearml-mongo:/data/db
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.10
+    image: elasticsearch:7.17.10
     restart: unless-stopped
     environment:
       - discovery.type=single-node
@@ -20,40 +25,58 @@ services:
   redis:
     image: redis:6.2
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
   apiserver:
-    image: allegroai/clearml:1.13.1
+    image: allegroai/clearml:latest
     restart: unless-stopped
+    command: apiserver
     depends_on:
-      - mongo
-      - elasticsearch
-      - redis
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_started
     ports:
       - "8008:8008"
     environment:
       - CLEARML_APISERVER__host=0.0.0.0
+      - CLEARML_APISERVER__default_queue=default
+    volumes:
+      - ./clearml-config/apiserver/hosts.conf:/opt/clearml/apiserver/config/default/hosts.conf:ro
   webserver:
-    image: allegroai/clearml:1.13.1
+    image: allegroai/clearml:latest
     restart: unless-stopped
+    command: webserver
     depends_on:
       - apiserver
     ports:
       - "8080:8080"
     environment:
       - CLEARML_WEBSERVER__host=0.0.0.0
+      - CLEARML_WEBSERVER__apiserver__host=apiserver
+      - CLEARML_WEBSERVER__apiserver__port=8008
+      - CLEARML_WEBSERVER__fileserver__host=fileserver
+      - CLEARML_WEBSERVER__fileserver__port=8081
+      - CLEARML_WEBSERVER__port=8080
   fileserver:
-    image: allegroai/clearml:1.13.1
+    image: allegroai/clearml:latest
     restart: unless-stopped
+    command: fileserver
     depends_on:
       - apiserver
     ports:
       - "8081:8081"
     environment:
       - CLEARML_FILES_SERVER__host=0.0.0.0
+      - CLEARML_FILES_SERVER__apiserver__host=apiserver
+      - CLEARML_FILES_SERVER__apiserver__port=8008
     volumes:
       - clearml-files:/opt/clearml/data
-# Optional: configure S3 storage for SDK (client-side clearml.conf),
-# or map ClearML server fileserver to S3 (advanced). For the course
-# requirements we will use SDK to upload models to MinIO S3 directly.
 
 volumes:
   clearml-mongo:

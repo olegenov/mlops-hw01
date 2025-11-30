@@ -49,22 +49,23 @@ Streamlit:
 
 Требуется Python 3.11+ и активированное виртуальное окружение (venv).
 
+0) Установка зависимостей
+- make install
+
 Вариант 1 — одной командой:
 - make run-all
   - Запустит REST API (http://localhost:8000), gRPC (localhost:50051) и UI (http://localhost:8501) параллельно
   - Остановить: Ctrl+C или make stop-all
 
 Вариант 2 — по отдельности:
-1) Установка зависимостей
-- make install
 
-2) Запуск REST API (Swagger на http://localhost:8000/docs)
+1) Запуск REST API (Swagger на http://localhost:8000/docs)
 - make run-api
 
-3) Запуск gRPC сервера
+2) Запуск gRPC сервера
 - make run-grpc
 
-4) Запуск Streamlit UI (http://localhost:8501)
+3) Запуск Streamlit UI (http://localhost:8501)
 - make run-ui
 - Можно указать API адрес через переменную окружения API_BASE_URL (по умолчанию http://localhost:8000)
 
@@ -128,26 +129,6 @@ Streamlit:
 Локальный ClearML (docker compose):
 - docker compose -f docker-compose.clearml.yml up -d
 - В UI: http://localhost:8080
-
-Переменные для клиента (SDK):
-- CLEARML_API_HOST (например http://localhost:8080)
-- CLEARML_API_ACCESS_KEY, CLEARML_API_SECRET_KEY
-
-Пример client clearml.conf (хранение артефактов в MinIO S3):
-- agent.package_manager.extra_index_url: ""
-- sdk.storage.cache.default_base_dir: "~/.clearml/cache"
-- sdk.storage.credentials: {}
-- storage:
-    - default_base_dir: "~/.clearml"
-    - direct_access: true
-    - engine: s3
-    - bucket: "mlops"
-    - host: "http://minio:9000"
-    - key: "minioadmin"
-    - secret: "minioadmin"
-    - region: "us-east-1"
-
-Замечание: конфигурация ClearML Server по умолчанию использует fileserver (локальный диск). Чтобы веса хранились в MinIO, настройте SDK/агента как выше или прокиньте clearml.conf в контейнер.
 
 ## Kubernetes / Minikube (driver=docker)
 
