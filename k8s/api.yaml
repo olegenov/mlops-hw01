@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlops-api
+  namespace: mlops-hw
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: mlops-api }
+  template:
+    metadata:
+      labels: { app: mlops-api }
+    spec:
+      containers:
+        - name: api
+          image: mlops-hw/api:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: mlops-config }
+            - secretRef: { name: mlops-secrets }
+          ports:
+            - containerPort: 8000
+          readinessProbe:
+            httpGet: { path: /health, port: 8000 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 8000 }
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          volumeMounts:
+            - name: dvc-cache
+              mountPath: /app/.dvc/cache
+            - name: datasets
+              mountPath: /app/data
+      volumes:
+        - name: dvc-cache
+          persistentVolumeClaim:
+            claimName: dvc-cache-pvc
+        - name: datasets
+          persistentVolumeClaim:
+            claimName: datasets-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlops-api
+  namespace: mlops-hw
+spec:
+  selector: { app: mlops-api }
+  type: NodePort
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+      nodePort: 30080

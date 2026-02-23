@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package mlops;
+
+import "google/protobuf/empty.proto";
+
+message HealthReply {
+  string status = 1;
+}
+
+message TrainRequest {
+  string model_key = 1;
+  string dataset_id = 2;
+  string target_column = 3;
+  string hyperparams_json = 4; // JSON-строка с гиперпараметрами
+  double test_size = 5;
+  bool shuffle = 6;
+  int32 random_state = 7;
+  string model_id = 8; // если указан — переобучение/overwrite
+}
+
+message TrainReply {
+  string model_id = 1;
+  string model_key = 2;
+  map<string, double> metrics = 3;
+}
+
+message PredictRequest {
+  string model_id = 1;
+  string instances_json = 2; // JSON-строка: [{"feat": val, ...}, ...]
+}
+
+message DoubleList {
+  repeated double values = 1;
+}
+
+message PredictReply {
+  repeated string predictions = 1;         // приведены к строкам для универсальности
+  repeated DoubleList probabilities = 2;   // shape: [n_samples][n_classes]
+}
+
+message ModelInfo {
+  string model_id = 1;
+  string model_key = 2;
+  string dataset_id = 3;
+  string target_column = 4;
+  string created_at = 5;
+}
+
+message ListModelsReply {
+  repeated ModelInfo items = 1;
+}
+
+message DeleteModelRequest {
+  string model_id = 1;
+}
+
+message DeleteModelReply {
+  bool deleted = 1;
+}
+
+service MLService {
+  rpc Health(google.protobuf.Empty) returns (HealthReply);
+  rpc Train(TrainRequest) returns (TrainReply);
+  rpc Predict(PredictRequest) returns (PredictReply);
+  rpc ListModels(google.protobuf.Empty) returns (ListModelsReply);
+  rpc DeleteModel(DeleteModelRequest) returns (DeleteModelReply);
+}
